@@ -20,7 +20,7 @@
 作为 DeepSeek Harness skill：
 
 ```bash
-git clone https://github.com/<你的账号>/mingpan-tuiyan.git
+git clone https://github.com/renejo75/mingpan-tuiyan.git
 cd mingpan-tuiyan
 ./install.sh
 ```
