@@ -2,7 +2,7 @@
 
 把《中国古代算命术》《三命通会》《滴天髓》《紫微斗数全书》四本书的推演方法，收成一个能真正排盘的 skill：八字四柱与紫微斗数同盘合参，先出盘面，再出断语。
 
-当前版本 **v0.6.3**。
+当前版本 **v0.7.0**。
 
 > 本项目用于传统文化研究与文本分析，不主张命理结论具有科学必然性，不构成医疗、法律、投资、婚姻等任何专业建议。完整条款见 [DISCLAIMER.md](DISCLAIMER.md)，第三方来源见 [NOTICE.md](NOTICE.md)。
 
@@ -36,6 +36,20 @@ pip3 install --target scripts/lib sxtwl==2.0.7
 python3 scripts/paipan.py --date 1990-05-20 --time 14:30 --gender m --city 上海
 ```
 
+## 其他 agent 与对话产品
+
+不是 DeepSeek Harness 也能用。`universal/` 下按平台出了壳：Claude Code、Codex CLI、Gemini CLI、Qwen Code、豆包智能体、纯对话框，外加一个离线盘面渲染器。
+
+```bash
+./universal/install.sh --list          # 看会装到哪
+./universal/install.sh --claude        # 只装 Claude
+./universal/install.sh --all --dry-run # 全部演练一遍，不动文件
+```
+
+分两类：能跑 Python 的环境用脚本自己排盘，最准；纯对话产品拿不到精确盘面，只做解读与校验，盘由用户贴进来。详见 [universal/README.md](universal/README.md)。
+
+没有 Python 但想看图，用 `universal/tools/chart.html`：把 `--json` 的输出粘进去，出盘面与解读提示词，全程本机、不联网。
+
 ## 用法
 
 ```bash
@@ -66,6 +80,11 @@ scripts/paipan.py     排盘脚本，纯 Python 3.9+
 sources/              《紫微斗数全书》公版原文（维基文库）
 DISCLAIMER.md         免责声明与不适用场景
 NOTICE.md             第三方组件与文本来源
+universal/            其他平台外壳：Claude、Codex、Gemini、Qwen、豆包、通用提示词
+  core.md             通用正文，单一来源
+  adapters/           生成物，九个平台的指令文件
+  tools/chart.html    离线盘面渲染器
+  install.sh          按平台安装
 ```
 
 ## 已知局限

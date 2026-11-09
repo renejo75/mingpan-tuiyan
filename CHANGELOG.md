@@ -1,5 +1,16 @@
 # 变更记录
 
+## v0.7.0
+
+多平台分发。
+
+- 新增 `universal/`：正文单一来源 `core.md`，生成 Claude Code、Codex CLI、Gemini CLI、Qwen Code、通用 agent 五种指令外壳，以及豆包系统提示词与纯对话使用说明。
+- `universal/tools/build_adapters.py`：一条命令重生成全部适配文件，避免多份正文漂移。
+- `universal/install.sh`：默认不动本机，必须给目标；改文件前备份，指令块带标记可重复安装。
+- `universal/tools/chart.html`：离线盘面渲染器，粘 `--json` 输出出图，并生成解读提示词。不做第二套天文计算。
+- README 增「其他 agent 与对话产品」一节。
+
+
 ## v0.6.3
 
 合规与声明补齐。

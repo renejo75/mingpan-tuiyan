@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>命盘推演 · 盘面渲染</title>
+<style>
+  :root{
+    --paper:#f6f2ea; --ink:#22201d; --sub:#6b6459; --line:#d9d1c2;
+    --zhu:#b4452f; --gold:#9a7b3f; --green:#4a6b4f; --blue:#3d5a80;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Songti SC","Source Han Serif SC","Noto Serif CJK SC",serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 28px 60px}
+  header{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:18px}
+  h1{font-size:20px;font-weight:400;letter-spacing:.18em;margin:0}
+  header .hint{font-size:12px;color:var(--sub);letter-spacing:.06em}
+  .bar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  button{font-family:inherit;font-size:13px;padding:7px 16px;border:1px solid var(--ink);
+    background:var(--ink);color:var(--paper);cursor:pointer;letter-spacing:.08em}
+  button.ghost{background:transparent;color:var(--ink)}
+  button:active{transform:translateY(1px)}
+  textarea{width:100%;min-height:120px;background:#fffdf8;border:1px solid var(--line);
+    padding:10px 12px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.6;color:var(--sub)}
+  .err{color:var(--zhu);font-size:13px;margin:8px 0}
+  section{margin-top:26px}
+  .cap{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12px;color:var(--sub);letter-spacing:.14em;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:14px}
+  .cap .r{letter-spacing:.04em}
+  /* 四柱 */
+  .pz{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+  .pz>div{background:#fffdf8;padding:12px 14px}
+  .pz .hd{font-size:11px;color:var(--sub);letter-spacing:.2em;display:flex;justify-content:space-between}
+  .pz .gz{font-size:34px;line-height:1.25;letter-spacing:.12em;margin:2px 0 6px}
+  .pz .gz .z{color:var(--zhu)}
+  .pz .ln{font-size:12px;color:var(--sub);display:flex;gap:8px;flex-wrap:wrap}
+  .pz .ln b{font-weight:400;color:var(--ink)}
+  .pz .day{border-top:2px solid var(--zhu)}
+  /* 五行 */
+  .wx{display:flex;height:8px;border:1px solid var(--line);margin-top:12px;overflow:hidden}
+  .wx i{display:block;height:100%}
+  .legend{display:flex;gap:18px;font-size:12px;color:var(--sub);margin-top:8px;flex-wrap:wrap}
+  .legend span::before{content:"";display:inline-block;width:8px;height:8px;margin-right:6px;vertical-align:middle}
+  /* 大运 */
+  .dy{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+  .dy>div{background:#fffdf8;padding:8px 6px;text-align:center}
+  .dy .a{font-size:11px;color:var(--sub)}
+  .dy .g{font-size:17px;letter-spacing:.06em;margin:3px 0}
+  .dy .s{font-size:11px;color:var(--sub)}
+  /* 紫微 */
+  .zw{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,minmax(104px,auto));
+    gap:1px;background:var(--line);border:1px solid var(--line)}
+  .zw .cell{background:#fffdf8;padding:9px 10px;position:relative;font-size:12px}
+  .zw .cell .pn{position:absolute;top:6px;right:8px;font-size:11px;color:var(--sub);letter-spacing:.1em}
+  .zw .cell .br{font-size:11px;color:#9a9287;letter-spacing:.1em}
+  .zw .cell .st{font-size:14px;letter-spacing:.05em;margin-top:4px}
+  .zw .cell .st .x{display:inline-block;margin:0 6px 2px 0;padding:0 2px}
+  .zw .cell .aux{font-size:11px;color:var(--sub);margin-top:2px}
+  .zw .cell .dx{position:absolute;bottom:6px;left:10px;font-size:11px;color:#9a9287}
+  .zw .cell.ming{outline:2px solid var(--zhu);outline-offset:-2px}
+  .tag{display:inline-block;font-size:10px;padding:0 3px;margin-left:3px;border:1px solid currentColor;line-height:1.4;vertical-align:2px}
+  .t-lu{color:var(--green)} .t-quan{color:var(--blue)} .t-ke{color:var(--gold)} .t-ji{color:var(--zhu)}
+  .zw .mid{grid-column:2/4;grid-row:2/4;background:#faf6ee;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;padding:16px;text-align:center}
+  .zw .mid .nm{font-size:19px;letter-spacing:.16em}
+  .zw .mid .meta{font-size:12px;color:var(--sub);line-height:1.9}
+  /* 输出 */
+  #out{display:none}
+  .promptbox{margin-top:12px}
+  .promptbox textarea{min-height:190px;color:var(--ink);background:#fffdf8;font-family:inherit;font-size:13px}
+  footer{margin-top:34px;font-size:11px;color:#9a9287;line-height:1.9;border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>命盘推演</h1>
+    <span class="hint">盘面渲染 · 粘 JSON 出图 · 全部在本机浏览器完成</span>
+  </header>
+
+  <div class="bar">
+    <button id="btnGo">渲染盘面</button>
+    <button class="ghost" id="btnSample">载入示例</button>
+    <button class="ghost" id="btnClear">清空</button>
+    <button class="ghost" id="btnPrompt" disabled>生成解读提示词</button>
+  </div>
+
+  <textarea id="src" spellcheck="false" placeholder="把 paipan.py --json 的输出整段粘到这里"></textarea>
+  <div class="err" id="err"></div>
+
+  <div id="out">
+    <section>
+      <div class="cap"><span>四柱</span><span class="r" id="meta1"></span></div>
+      <div class="pz" id="pz"></div>
+      <div class="wx" id="wx"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section>
+      <div class="cap"><span>大运</span><span class="r" id="meta2"></span></div>
+      <div class="dy" id="dy"></div>
+    </section>
+
+    <section>
+      <div class="cap"><span>紫微</span><span class="r" id="meta3"></span></div>
+      <div class="zw" id="zw"></div>
+    </section>
+
+    <section class="promptbox">
+      <div class="cap"><span>解读提示词</span><span class="r">复制后粘到任何对话产品</span></div>
+      <textarea id="prompt" spellcheck="false" readonly></textarea>
+    </section>
+  </div>
+
+  <footer>
+    本页只做渲染与提示词生成，不做天文计算。四柱、节气、紫微安星一律以 <code>scripts/paipan.py</code> 的输出为准，避免第二套实现带来的分歧。<br>
+    内容用于传统文化研究与文本分析，不构成医疗、法律、投资、婚姻建议。详见仓库 DISCLAIMER.md。
+  </footer>
+</div>
+
+<script>
+const SAMPLE = {"dt_std":"1990-05-20 14:30:00","dt_true":"1990-05-20 14:39:28","gender":"m","lon":121.47,"lunar":{"year":1990,"month":4,"day":26,"leap":false,"month_cn":4},"bazi":{"dt_std":"1990-05-20 14:30:00","dt_true":"1990-05-20 14:39:28","year_gan":6,"year_zhi":6,"month_gan":7,"month_zhi":5,"day_gan":1,"day_zhi":9,"hour_gan":9,"hour_zhi":7,"pillars":[{"label":"年","gan":"庚","zhi":"午","gan_wx":"金","zhi_wx":"火","gan_shishen":"正官","cang":[{"gan":"丁","shishen":"食神"},{"gan":"己","shishen":"偏财"}],"nayin":"路旁土","nayin_wx":"土","xunkong":"戌亥"},{"label":"月","gan":"辛","zhi":"巳","gan_wx":"金","zhi_wx":"火","gan_shishen":"七杀","cang":[{"gan":"丙","shishen":"伤官"},{"gan":"戊","shishen":"正财"},{"gan":"庚","shishen":"正官"}],"nayin":"白蜡金","nayin_wx":"金","xunkong":"申酉"},{"label":"日","gan":"乙","zhi":"酉","gan_wx":"木","zhi_wx":"金","gan_shishen":"日主","cang":[{"gan":"辛","shishen":"七杀"}],"nayin":"泉中水","nayin_wx":"水","xunkong":"午未"},{"label":"时","gan":"癸","zhi":"未","gan_wx":"水","zhi_wx":"土","gan_shishen":"偏印","cang":[{"gan":"己","shishen":"偏财"},{"gan":"丁","shishen":"食神"},{"gan":"乙","shishen":"比肩"}],"nayin":"杨柳木","nayin_wx":"木","xunkong":"申酉"}],"wx_count":{"木":1.3,"火":2.5,"土":2.0,"金":3.3,"水":1.0},"forward":true,"start_age":5.583333333333333,"start_years":5,"start_months":7,"dayun":[{"ganzhi":"壬午","gan":"壬","zhi":"午","shishen":"正印","age_start":5.6,"age_end":15.6,"year_start":1995,"cang":[{"gan":"丁","shishen":"食神"},{"gan":"己","shishen":"偏财"}]},{"ganzhi":"癸未","gan":"癸","zhi":"未","shishen":"偏印","age_start":15.6,"age_end":25.6,"year_start":2005,"cang":[{"gan":"己","shishen":"偏财"},{"gan":"丁","shishen":"食神"},{"gan":"乙","shishen":"比肩"}]},{"ganzhi":"甲申","gan":"甲","zhi":"申","shishen":"劫财","age_start":25.6,"age_end":35.6,"year_start":2015,"cang":[{"gan":"庚","shishen":"正官"},{"gan":"壬","shishen":"正印"},{"gan":"戊","shishen":"正财"}]},{"ganzhi":"乙酉","gan":"乙","zhi":"酉","shishen":"比肩","age_start":35.6,"age_end":45.6,"year_start":2025,"cang":[{"gan":"辛","shishen":"七杀"}]},{"ganzhi":"丙戌","gan":"丙","zhi":"戌","shishen":"伤官","age_start":45.6,"age_end":55.6,"year_start":2035,"cang":[{"gan":"戊","shishen":"正财"},{"gan":"辛","shishen":"七杀"},{"gan":"丁","shishen":"食神"}]},{"ganzhi":"丁亥","gan":"丁","zhi":"亥","shishen":"食神","age_start":55.6,"age_end":65.6,"year_start":2045,"cang":[{"gan":"壬","shishen":"正印"},{"gan":"甲","shishen":"劫财"}]},{"ganzhi":"戊子","gan":"戊","zhi":"子","shishen":"正财","age_start":65.6,"age_end":75.6,"year_start":2055,"cang":[{"gan":"癸","shishen":"偏印"}]},{"ganzhi":"己丑","gan":"己","zhi":"丑","shishen":"偏财","age_start":75.6,"age_end":85.6,"year_start":2065,"cang":[{"gan":"己","shishen":"偏财"},{"gan":"癸","shishen":"偏印"},{"gan":"辛","shishen":"七杀"}]}],"jieqi_ref":{"prev":"1990-05-06 02:35:26","name":"立夏"}},"ziwei":{"ming":"戌","shen":"子","ming_gan":"丙","ju":"土五局","ju_num":5,"ziwei":"亥","tianfu":"巳","palaces":[{"branch":"子","gan":"戊","name":"福德","is_shen":true,"main":[],"aux":["天刑","天哭","天虚"],"hua":[]},{"branch":"丑","gan":"己","name":"田宅","is_shen":false,"main":[],"aux":["天魁","台辅"],"hua":[]},{"branch":"寅","gan":"戊","name":"官禄","is_shen":false,"main":[],"aux":[],"hua":[]},{"branch":"卯","gan":"己","name":"奴仆","is_shen":false,"main":["廉贞","破军"],"aux":["文昌","天喜"],"hua":[]},{"branch":"辰","gan":"庚","name":"迁移","is_shen":false,"main":[],"aux":["地空","天姚","凤阁","天伤","天使"],"hua":[]},{"branch":"巳","gan":"辛","name":"疾厄","is_shen":false,"main":["天府"],"aux":[],"hua":[]},{"branch":"午","gan":"壬","name":"财帛","is_shen":false,"main":["天同","太阴"],"aux":["地劫"],"hua":["太阴化科","天同化忌"]},{"branch":"未","gan":"癸","name":"子女","is_shen":false,"main":["武曲","贪狼"],"aux":["左辅","右弼","天钺","陀罗"],"hua":["武曲化权"]},{"branch":"申","gan":"甲","name":"夫妻","is_shen":false,"main":["太阳","巨门"],"aux":["禄存","火星"],"hua":["太阳化禄"]},{"branch":"酉","gan":"乙","name":"兄弟","is_shen":false,"main":["天相"],"aux":["擎羊","红鸾","封诰"],"hua":[]},{"branch":"戌","gan":"丙","name":"命宫","is_shen":false,"main":["天机","天梁"],"aux":["铃星","龙池"],"hua":[]},{"branch":"亥","gan":"丁","name":"父母","is_shen":false,"main":["紫微","七杀"],"aux":["文曲","天马"],"hua":[]}],"daxian":[{"age_start":5,"age_end":14,"branch":"戌","palace":"命宫","stars":["天机","天梁"]},{"age_start":15,"age_end":24,"branch":"亥","palace":"父母","stars":["紫微","七杀"]},{"age_start":25,"age_end":34,"branch":"子","palace":"福德","stars":[]},{"age_start":35,"age_end":44,"branch":"丑","palace":"田宅","stars":[]},{"age_start":45,"age_end":54,"branch":"寅","palace":"官禄","stars":[]},{"age_start":55,"age_end":64,"branch":"卯","palace":"奴仆","stars":["廉贞","破军"]},{"age_start":65,"age_end":74,"branch":"辰","palace":"迁移","stars":[]},{"age_start":75,"age_end":84,"branch":"巳","palace":"疾厄","stars":["天府"]},{"age_start":85,"age_end":94,"branch":"午","palace":"财帛","stars":["天同","太阴"]},{"age_start":95,"age_end":104,"branch":"未","palace":"子女","stars":["武曲","贪狼"]},{"age_start":105,"age_end":114,"branch":"申","palace":"夫妻","stars":["太阳","巨门"]},{"age_start":115,"age_end":124,"branch":"酉","palace":"兄弟","stars":["天相"]}],"forward":true}};
+
+const WX_COLOR = {木:"#4a6b4f", 火:"#b4452f", 土:"#9a7b3f", 金:"#8d8880", 水:"#3d5a80"};
+const BR = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+const GRID = {  // 紫微盘位：东南西北四边
+  "巳":[1,1],"午":[1,2],"未":[1,3],"申":[1,4],
+  "辰":[2,1],"酉":[2,4],
+  "卯":[3,1],"戌":[3,4],
+  "寅":[4,1],"丑":[4,2],"子":[4,3],"亥":[4,4]
+};
+const HUA_CLASS = {"禄":"t-lu","权":"t-quan","科":"t-ke","忌":"t-ji"};
+
+const $ = (id) => document.getElementById(id);
+
+function el(tag, cls, text){
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function fmtNum(x, d){ return (Math.round(x * Math.pow(10, d)) / Math.pow(10, d)).toString(); }
+
+function parse(text){
+  let t = text.trim();
+  if (!t) throw new Error("还没有内容。先粘 paipan.py --json 的输出，或点「载入示例」。");
+  try { return JSON.parse(t); }
+  catch(e){
+    // 允许 JSON 前后有说明文字
+    const a = t.indexOf("{"), b = t.lastIndexOf("}");
+    if (a >= 0 && b > a) {
+      try { return JSON.parse(t.slice(a, b + 1)); } catch(e2){}
+    }
+    throw new Error("这段不是合法 JSON：" + e.message);
+  }
+}
+
+function render(d){
+  if (!d || !d.bazi || !d.ziwei) throw new Error("缺少 bazi 或 ziwei 字段，确认是 paipan.py --json 的完整输出。");
+  $("err").textContent = "";
+  const b = d.bazi, z = d.ziwei;
+
+  // 四柱
+  const pz = $("pz"); pz.innerHTML = "";
+  b.pillars.forEach((p) => {
+    const cell = el("div", p.label === "日" ? "day" : "");
+    const hd = el("div", "hd");
+    hd.appendChild(el("span", null, p.label + "柱"));
+    hd.appendChild(el("span", null, p.gan_wx + " " + p.zhi_wx));
+    cell.appendChild(hd);
+    const gz = el("div", "gz");
+    gz.appendChild(el("span", null, p.gan));
+    gz.appendChild(el("span", "z", p.zhi));
+    cell.appendChild(gz);
+    const l1 = el("div", "ln");
+    l1.appendChild(el("span", null, "十神 ")); l1.appendChild(el("b", null, p.gan_shishen));
+    cell.appendChild(l1);
+    const l2 = el("div", "ln");
+    l2.appendChild(el("span", null, "藏干 ")); l2.appendChild(el("b", null, p.cang.map(c => c.gan + c.shishen).join("　")));
+    cell.appendChild(l2);
+    const l3 = el("div", "ln");
+    l3.appendChild(el("span", null, "纳音 ")); l3.appendChild(el("b", null, p.nayin + " · " + p.xunkong));
+    cell.appendChild(l3);
+    pz.appendChild(cell);
+  });
+
+  $("meta1").textContent = "真太阳时 " + (b.dt_true || d.dt_true || "").slice(11,16)
+    + " · " + (d.lunar ? ("农历 " + d.lunar.year + " 年 " + d.lunar.month + " 月 " + d.lunar.day + " 日") : "");
+
+  // 五行
+  const wx = $("wx"), lg = $("legend");
+  wx.innerHTML = ""; lg.innerHTML = "";
+  const total = Object.values(b.wx_count).reduce((a, c) => a + c, 0) || 1;
+  Object.keys(b.wx_count).forEach((k) => {
+    const bar = el("i");
+    bar.style.width = (b.wx_count[k] / total * 100).toFixed(2) + "%";
+    bar.style.background = WX_COLOR[k] || "#999";
+    wx.appendChild(bar);
+    const s = el("span");
+    const dot = el("b");
+    dot.style.cssText = "display:inline-block;width:8px;height:8px;margin-right:6px;vertical-align:middle;background:" + (WX_COLOR[k] || "#999");
+    s.appendChild(dot);
+    s.appendChild(document.createTextNode(k + " " + b.wx_count[k]));
+    lg.appendChild(s);
+  });
+
+  // 大运
+  const dy = $("dy"); dy.innerHTML = "";
+  b.dayun.forEach((u) => {
+    const c = el("div");
+    c.appendChild(el("div", "a", fmtNum(u.age_start,1) + "–" + fmtNum(u.age_end,1)));
+    c.appendChild(el("div", "g", u.ganzhi));
+    c.appendChild(el("div", "s", u.shishen));
+    dy.appendChild(c);
+  });
+  $("meta2").textContent = fmtNum(b.start_age,1) + " 岁起运 · " + (b.forward ? "顺行" : "逆行")
+    + (b.jieqi_ref ? " · 节气 " + b.jieqi_ref.name : "");
+
+  // 紫微
+  const zw = $("zw"); zw.innerHTML = "";
+  const dxByBranch = {};
+  (z.daxian || []).forEach(x => { dxByBranch[x.branch] = x; });
+  const cells = {};
+  z.palaces.forEach((p) => {
+    const pos = GRID[p.branch];
+    if (!pos) return;
+    const c = el("div", "cell" + (p.name === "命宫" ? " ming" : ""));
+    c.style.gridRow = pos[0]; c.style.gridColumn = pos[1];
+    c.appendChild(el("div", "pn", p.name));
+    c.appendChild(el("div", "br", p.gan + p.branch));
+    const st = el("div", "st");
+    (p.main && p.main.length ? p.main : ["空宫"]).forEach((s) => {
+      const sp = el("span", "x", s);
+      const hua = (p.hua || []).find(h => h.indexOf(s) === 0);
+      if (hua) {
+        const h = hua.slice(-1);
+        const tag = el("sup", "tag " + (HUA_CLASS[h] || ""), h);
+        sp.appendChild(tag);
+      }
+      st.appendChild(sp);
+    });
+    c.appendChild(st);
+    if (p.aux && p.aux.length) c.appendChild(el("div", "aux", p.aux.join(" · ")));
+    const dx = dxByBranch[p.branch];
+    if (dx) c.appendChild(el("div", "dx", dx.age_start + "–" + dx.age_end));
+    zw.appendChild(c);
+    cells[p.branch] = c;
+  });
+  const mid = el("div", "mid");
+  mid.appendChild(el("div", "nm", d.name || "本盘"));
+  const meta = el("div", "meta");
+  meta.innerHTML = "命宫 " + z.ming + " · 身宫 " + z.shen + " · " + z.ju
+    + "<br>紫微在 " + z.ziwei + " · 天府在 " + z.tianfu
+    + "<br>" + b.pillars.map(p => p.gan + p.zhi).join(" ");
+  mid.appendChild(meta);
+  zw.appendChild(mid);
+
+  $("meta3").textContent = "命" + z.ming + " · 身" + z.shen + " · " + z.ju;
+
+  $("out").style.display = "block";
+  $("btnPrompt").disabled = false;
+  $("prompt").value = buildPrompt(d);
+  buildPromptLast = d;
+}
+
+let buildPromptLast = null;
+
+function buildPrompt(d){
+  const b = d.bazi, z = d.ziwei;
+  const sizhu = b.pillars.map(p => p.gan + p.zhi).join(" ");
+  const dayun = b.dayun.slice(0, 4).map(u => u.ganzhi + " " + fmtNum(u.age_start,1)).join("、");
+  const hua = [];
+  z.palaces.forEach(p => (p.hua || []).forEach(h => hua.push(h + "（" + p.name + "）")));
+  return [
+    "请按命盘推演的方法解读。",
+    "性别：" + (d.gender === "f" ? "女" : "男"),
+    "公历生日：" + (d.dt_std || "") + (d.lon ? "（经度 " + d.lon + "）" : ""),
+    "真太阳时：" + (b.dt_true || "").slice(0,16),
+    "农历：" + (d.lunar ? d.lunar.year + " 年 " + d.lunar.month + " 月 " + d.lunar.day + " 日" : "未知"),
+    "四柱：" + sizhu,
+    "日主：" + b.pillars[2].gan + (b.pillars[2].gan_wx ? "（" + b.pillars[2].gan_wx + "）" : ""),
+    "五行权重：" + Object.entries(b.wx_count).map(([k,v]) => k + v).join(" "),
+    "起运：" + fmtNum(b.start_age,1) + " 岁" + (b.forward ? "顺行" : "逆行"),
+    "大运：" + dayun + " …（每十年一换）",
+    "紫微：命宫 " + z.ming + "，身宫 " + z.shen + "，" + z.ju + "，紫微在 " + z.ziwei + "，天府在 " + z.tianfu,
+    "四化：" + (hua.length ? hua.join("；") : "无"),
+    "",
+    "想了解：（在这里写事业、财、关系、健康、学业，选一两个）",
+    "",
+    "要求：结论先行；每条断语给出依据；写清哪些结论依赖出生时辰；不写生死断定。"
+  ].join("\n");
+}
+
+$("btnGo").onclick = () => {
+  try { render(parse($("src").value)); }
+  catch(e){ $("err").textContent = e.message; $("out").style.display = "none"; }
+};
+$("btnSample").onclick = () => {
+  $("src").value = JSON.stringify(SAMPLE, null, 2);
+  $("btnGo").onclick();
+};
+$("btnClear").onclick = () => {
+  $("src").value = ""; $("err").textContent = ""; $("out").style.display = "none";
+  $("btnPrompt").disabled = true;
+};
+$("btnPrompt").onclick = () => {
+  const t = $("prompt");
+  t.removeAttribute("readonly"); t.focus(); t.select();
+  try { document.execCommand("copy"); } catch(e){}
+  t.setAttribute("readonly", "");
+  $("btnPrompt").textContent = "已复制";
+  setTimeout(() => { $("btnPrompt").textContent = "生成解读提示词"; }, 1200);
+};
+
+if (location.hash === "#sample" && SAMPLE) {
+  $("src").value = JSON.stringify(SAMPLE, null, 2);
+  $("btnGo").onclick();
+}
+</script>
+</body>
+</html>
